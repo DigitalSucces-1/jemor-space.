@@ -29,6 +29,7 @@ export function useVoiceRecorder() {
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
       setRecordedUrl(null); setRecordedBlob(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      cancelledRef.current = false;
       streamRef.current = stream;
       chunksRef.current = [];
       const preferred = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((type) => MediaRecorder.isTypeSupported(type));
@@ -37,9 +38,14 @@ export function useVoiceRecorder() {
       recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data); };
       recorder.onerror = () => setError('L’enregistrement vocal a rencontré une erreur.');
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-        setRecordedBlob(blob);
-        setRecordedUrl(URL.createObjectURL(blob));
+        if (!cancelledRef.current && chunksRef.current.length) {
+          const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          if (blob.size > 0) {
+            setRecordedBlob(blob);
+            setRecordedUrl(URL.createObjectURL(blob));
+          }
+        }
+        chunksRef.current = [];
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
         setIsRecording(false);
