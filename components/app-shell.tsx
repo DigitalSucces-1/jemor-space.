@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { Avatar } from '@/components/avatar';
 import { PwaRuntime } from '@/components/pwa-runtime';
+import { InstallNudge } from '@/components/install-nudge';
 
 const nav = [
   { href: '/', label: 'Fil d’actualité', short: 'Fil', icon: House },
@@ -66,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="topbar">
         <Link className="brand" href="/" aria-label="Jémor Space, accueil"><span className="brand-mark"><Waves size={23} /></span><span>Jémor <b>Space</b></span></Link>
         <div className="topbar-right">
-          <PwaRuntime userId={user?.id ?? null} />
+          <PwaRuntime userId={user?.id ?? null} /><InstallNudge />
           <div className="live-chip"><span /> Un espace pour se retrouver</div>
           {user ? <button className="mini-profile" onClick={() => router.push('/profile')}><Avatar src={profile?.avatar_url} name={profile?.full_name || user.email} size="sm"/><span>{profile?.full_name || 'Mon compte'}</span></button> : <Link href="/auth?mode=signin" className="button button-primary button-small">Se connecter</Link>}
         </div>
