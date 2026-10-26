@@ -6,6 +6,7 @@ export function useVoiceRecorder() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
+  const cancelledRef = useRef(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
@@ -28,6 +29,7 @@ export function useVoiceRecorder() {
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
       setRecordedUrl(null); setRecordedBlob(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      cancelledRef.current = false;
       streamRef.current = stream;
       chunksRef.current = [];
       const preferred = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((type) => MediaRecorder.isTypeSupported(type));
@@ -36,9 +38,14 @@ export function useVoiceRecorder() {
       recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data); };
       recorder.onerror = () => setError('L’enregistrement vocal a rencontré une erreur.');
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-        setRecordedBlob(blob);
-        setRecordedUrl(URL.createObjectURL(blob));
+        if (!cancelledRef.current && chunksRef.current.length) {
+          const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          if (blob.size > 0) {
+            setRecordedBlob(blob);
+            setRecordedUrl(URL.createObjectURL(blob));
+          }
+        }
+        chunksRef.current = [];
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
         setIsRecording(false);
@@ -59,11 +66,22 @@ export function useVoiceRecorder() {
     else setIsRecording(false);
   }, []);
 
+  const cancel = useCallback(() => {
+    cancelledRef.current = true;
+    chunksRef.current = [];
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setIsRecording(false);
+    clear();
+  }, [clear]);
+
   useEffect(() => () => {
     if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
     streamRef.current?.getTracks().forEach((track) => track.stop());
     if (recordedUrl) URL.revokeObjectURL(recordedUrl);
   }, [recordedUrl]);
 
-  return { isRecording, recordedBlob, recordedUrl, error, start, stop, clear };
+  return { isRecording, recordedBlob, recordedUrl, error, start, stop, cancel, clear };
 }

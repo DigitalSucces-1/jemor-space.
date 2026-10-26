@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Eye, EyeOff, KeyRound, LoaderCircle, Mail, Sparkles, UserRound, Waves } from 'lucide-react';
@@ -16,6 +16,11 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    const requestedMode = new URLSearchParams(window.location.search).get('mode');
+    if (requestedMode === 'signin' || requestedMode === 'signup') setMode(requestedMode);
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setError(''); setNotice('');

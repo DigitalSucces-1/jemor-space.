@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jemor-space-shell-v1';
+const CACHE_NAME = 'jemor-space-shell-v2';
 const APP_SHELL = ['/offline.html', '/pwa-icon-192.png', '/pwa-icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -14,7 +14,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin || request.mode !== 'navigate') return;
-  event.respondWith(fetch(request).catch(async () => (await caches.match('/offline.html')) || Response.error()));
+  event.respondWith(fetch(request).then((response) => {
+    if (response && response.ok) return response;
+    return caches.match('/offline.html').then((fallback) => fallback || response);
+  }).catch(async () => (await caches.match('/offline.html')) || Response.error()));
 });
 
 self.addEventListener('push', (event) => {

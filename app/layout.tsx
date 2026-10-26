@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import './plan-2.css';
 
 export const metadata: Metadata = {
   title: 'Jémor Space — Le lien qui nous rapproche',
