@@ -55,6 +55,8 @@ export default function GroupsPage(){
  useEffect(()=>{void loadGroups();},[loadGroups]);
 
  const selected=groups.find(g=>g.id===selectedId)||null;
+
+ function changeGroupMode(value:'community'|'chat'){setGroupMode(value);setGroupVisibility(value==='chat'?'private':'public');setJoinApproval(true);}
  const loadGroupPosts=useCallback(async(id:string)=>{
   const sb=createClient();if(!sb)return;
   const {data,error:e1}=await sb.from('posts').select('id,author_id,body,visibility,post_type,group_id,created_at').eq('group_id',id).order('created_at',{ascending:false}).limit(30);
