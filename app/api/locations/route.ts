@@ -19,17 +19,42 @@ const fallbackCities: Record<string, string[]> = {
 };
 
 async function fetchCountries(): Promise<Country[]> {
+  // Use the same geographic data provider as the city lookup, to avoid
+  // silently reducing the country selector to the small emergency list.
   try {
-    const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,flag', { next: { revalidate: 86400 } });
-    if (!res.ok) throw new Error('country list unavailable');
-    const rows = await res.json() as Array<{ name?: { common?: string }; cca2?: string; flag?: string }>;
-    return rows.filter((x) => x.cca2 && x.name?.common).map((x) => ({ name: x.name!.common!, cca2: x.cca2!, flag: x.flag || flagFromCode(x.cca2!) })).sort((a,b) => a.name.localeCompare(b.name, 'fr'));
+    const res = await fetch('https://countriesnow.space/api/v0.1/countries/iso', { next: { revalidate: 86400 } });
+    if (!res.ok) throw new Error('ISO country list unavailable');
+    const payload = await res.json() as {
+      error?: boolean;
+      data?: Array<{ name?: string; Iso2?: string; iso2?: string }>;
+    };
+    const rows = payload.data ?? [];
+    const countries = rows
+      .filter((x) => !!x.name && !!(x.Iso2 || x.iso2))
+      .map((x) => {
+        const cca2 = (x.Iso2 || x.iso2)!.toUpperCase();
+        return { name: x.name!, cca2, flag: flagFromCode(cca2) };
+      });
+    if (payload.error || countries.length < 200) throw new Error('ISO country list is incomplete');
+    return countries.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
   } catch {
-    return [
-      { name:'Bénin',cca2:'BJ',flag:'🇧🇯' },{ name:'Côte d’Ivoire',cca2:'CI',flag:'🇨🇮' },{ name:'France',cca2:'FR',flag:'🇫🇷' },
-      { name:'Ghana',cca2:'GH',flag:'🇬🇭' },{ name:'Nigeria',cca2:'NG',flag:'🇳🇬' },{ name:'Sénégal',cca2:'SN',flag:'🇸🇳' },
-      { name:'Togo',cca2:'TG',flag:'🇹🇬' },{ name:'États-Unis',cca2:'US',flag:'🇺🇸' },{ name:'Canada',cca2:'CA',flag:'🇨🇦' },
-    ];
+    // Secondary source, useful if CountriesNow is temporarily unavailable.
+    try {
+      const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,flag', { next: { revalidate: 86400 } });
+      if (!res.ok) throw new Error('country list unavailable');
+      const rows = await res.json() as Array<{ name?: { common?: string }; cca2?: string; flag?: string }>;
+      const countries = rows
+        .filter((x) => x.cca2 && x.name?.common)
+        .map((x) => ({ name: x.name!.common!, cca2: x.cca2!, flag: x.flag || flagFromCode(x.cca2!) }));
+      if (countries.length < 200) throw new Error('country list is incomplete');
+      return countries.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+    } catch {
+      return [
+        { name:'Bénin',cca2:'BJ',flag:'🇧🇯' },{ name:'Côte d’Ivoire',cca2:'CI',flag:'🇨🇮' },{ name:'France',cca2:'FR',flag:'🇫🇷' },
+        { name:'Ghana',cca2:'GH',flag:'🇬🇭' },{ name:'Nigeria',cca2:'NG',flag:'🇳🇬' },{ name:'Sénégal',cca2:'SN',flag:'🇸🇳' },
+        { name:'Togo',cca2:'TG',flag:'🇹🇬' },{ name:'États-Unis',cca2:'US',flag:'🇺🇸' },{ name:'Canada',cca2:'CA',flag:'🇨🇦' },
+      ];
+    }
   }
 }
 function flagFromCode(code: string) { return code.toUpperCase().replace(/[A-Z]/g, (c) => String.fromCodePoint(c.charCodeAt(0) + 127397)); }
