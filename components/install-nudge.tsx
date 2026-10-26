@@ -28,6 +28,7 @@ export function InstallNudge() {
 
   function install() {
     setShow(false);
+    sessionStorage.setItem('jemor-install-nudge-dismissed', '1');
     window.dispatchEvent(new Event('jemor-install-request'));
   }
 
