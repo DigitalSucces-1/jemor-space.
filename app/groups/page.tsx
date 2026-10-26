@@ -11,7 +11,7 @@ import type { Profile, Post } from '@/lib/types';
 import { timeAgo } from '@/lib/types';
 import { Check, CheckCheck, Globe, LoaderCircle, LockKeyhole, MessageCircle, Plus, Search, Send, ShieldCheck, Users, UserRoundCog, X, ImagePlus } from 'lucide-react';
 
-type GroupRow = { id:string; title:string|null; description:string; group_visibility:'public'|'private'; join_approval:boolean; created_by:string; created_at:string; members:Member[]; mine?:Member|null; request?:JoinRequest|null; posts:GroupPost[] };
+type GroupRow = { id:string; title:string|null; description:string; group_visibility:'public'|'private'; group_mode:'community'|'chat'; join_approval:boolean; created_by:string; created_at:string; members:Member[]; mine?:Member|null; request?:JoinRequest|null; posts:GroupPost[] };
 type Member = { user_id:string; member_role:string; joined_at:string; profile?:Profile };
 type JoinRequest = { id:string; conversation_id:string; requester_id:string; status:'pending'|'approved'|'rejected'; created_at:string; profile?:Profile };
 type GroupPost = Post & { media_path?:string|null; media_type?:'image'|'video'|null; media_url?:string|null };
@@ -20,13 +20,13 @@ export default function GroupsPage(){
  const {user,profile}=useAuth();
  const [groups,setGroups]=useState<GroupRow[]>([]); const [selectedId,setSelectedId]=useState<string|null>(null);
  const [search,setSearch]=useState(''); const [loading,setLoading]=useState(true); const [error,setError]=useState(''); const [notice,setNotice]=useState('');
- const [showCreate,setShowCreate]=useState(false); const [groupName,setGroupName]=useState(''); const [groupDescription,setGroupDescription]=useState(''); const [groupVisibility,setGroupVisibility]=useState<'public'|'private'>('public'); const [joinApproval,setJoinApproval]=useState(true); const [working,setWorking]=useState(false);
+ const [showCreate,setShowCreate]=useState(false); const [groupName,setGroupName]=useState(''); const [groupDescription,setGroupDescription]=useState(''); const [groupVisibility,setGroupVisibility]=useState<'public'|'private'>('public'); const [groupMode,setGroupMode]=useState<'community'|'chat'>('community'); const [joinApproval,setJoinApproval]=useState(true); const [working,setWorking]=useState(false);
  const [postDraft,setPostDraft]=useState(''); const [postFile,setPostFile]=useState<File|null>(null); const [groupTab,setGroupTab]=useState<'posts'|'members'|'requests'>('posts');
 
  const loadGroups=useCallback(async()=>{
   const sb=createClient(); if(!sb||!user){setLoading(false);return;} setLoading(true);setError('');
   try{
-   const {data:all,error:e1}=await sb.from('conversations').select('id,title,description,group_visibility,join_approval,created_by,created_at').eq('is_group',true).order('created_at',{ascending:false}).limit(100);
+   const {data:all,error:e1}=await sb.from('conversations').select('id,title,description,group_visibility,group_mode,join_approval,created_by,created_at').eq('is_group',true).order('created_at',{ascending:false}).limit(100);
    if(e1)throw e1;
    const rows=all??[]; const ids=rows.map((g:any)=>g.id);
    if(!ids.length){setGroups([]);setSelectedId(null);return;}
@@ -69,12 +69,13 @@ export default function GroupsPage(){
   const list=posts.map((p:any)=>({...p,author:map.get(p.author_id),media:Object.values((p as any).media||{})}));
   setGroups(old=>old.map(g=>g.id===id?{...g,posts:list}:g));
  },[]);
- useEffect(()=>{if(selectedId&&selected?.mine)void loadGroupPosts(selectedId);},[selectedId,selected?.mine?.user_id,loadGroupPosts]);
+ useEffect(()=>{if(selectedId&&selected?.mine&&selected.group_mode==='community')void loadGroupPosts(selectedId);},[selectedId,selected?.mine?.user_id,selected?.group_mode,loadGroupPosts]);
+ useEffect(()=>{setGroupTab(selected?.group_mode==='chat'?'members':'posts');},[selectedId,selected?.group_mode]);
 
  async function createGroup(e:FormEvent){e.preventDefault();const sb=createClient();if(!sb||!user||!groupName.trim())return;setWorking(true);setError('');
-  try{const {data:conv,error:e1}=await sb.from('conversations').insert({created_by:user.id,is_group:true,title:groupName.trim(),description:groupDescription.trim(),group_visibility:groupVisibility,join_approval:groupVisibility === 'private' ? true : joinApproval}).select('id').single();if(e1)throw e1;
+  try{const {data:conv,error:e1}=await sb.from('conversations').insert({created_by:user.id,is_group:true,title:groupName.trim(),description:groupDescription.trim(),group_visibility:groupMode === 'chat' ? 'private' : groupVisibility,group_mode:groupMode,join_approval:groupMode === 'chat' || groupVisibility === 'private' ? true : joinApproval}).select('id').single();if(e1)throw e1;
    const {error:e2}=await sb.from('conversation_members').insert({conversation_id:conv.id,user_id:user.id,member_role:'admin'});if(e2)throw e2;
-   setNotice(`Le groupe « ${groupName.trim()} » a été créé.`);setGroupName('');setGroupDescription('');setShowCreate(false);setSelectedId(conv.id);await loadGroups();
+   setNotice(`Le groupe « ${groupName.trim()} » a été créé.`);setGroupName('');setGroupDescription('');setGroupMode('community');setGroupVisibility('public');setShowCreate(false);setSelectedId(conv.id);await loadGroups();
   }catch(e){setError(e instanceof Error?e.message:'Impossible de créer le groupe.');}finally{setWorking(false);}}
  async function joinGroup(g:GroupRow){const sb=createClient();if(!sb||!user)return;setWorking(true);setError('');
   try{if(g.group_visibility==='public'){const {error:e}=await sb.from('conversation_members').insert({conversation_id:g.id,user_id:user.id,member_role:'member'});if(e&&e.code!=='23505')throw e;setNotice('Tu as rejoint le groupe.');}
