@@ -5,6 +5,10 @@ export type Profile = {
   bio: string;
   avatar_url: string | null;
   cover_url: string | null;
+  avatar_position_x?: number;
+  avatar_position_y?: number;
+  cover_position_x?: number;
+  cover_position_y?: number;
   website: string | null;
   websites?: string[];
   country_code?: string | null;
