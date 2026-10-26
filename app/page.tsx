@@ -116,7 +116,7 @@ export default function FeedPage() {
   function choosePostFiles(list: FileList | null) {
     if (!list) return;
     const incoming = Array.from(list);
-    const invalid = incoming.map(validateMedia).find(Boolean);
+    const invalid = incoming.map(file => validateMedia(file)).find(Boolean);
     if (invalid) { setFeedError(invalid); return; }
     setFeedError('');
     setPostFiles(current => [...current, ...incoming].slice(0, 10));
