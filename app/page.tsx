@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { ImageLightbox } from '@/components/image-lightbox';
 import { Avatar } from '@/components/avatar';
 import { useAuth } from '@/hooks/use-auth';
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder';
