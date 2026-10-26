@@ -66,11 +66,22 @@ export function useVoiceRecorder() {
     else setIsRecording(false);
   }, []);
 
+  const cancel = useCallback(() => {
+    cancelledRef.current = true;
+    chunksRef.current = [];
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setIsRecording(false);
+    clear();
+  }, [clear]);
+
   useEffect(() => () => {
     if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
     streamRef.current?.getTracks().forEach((track) => track.stop());
     if (recordedUrl) URL.revokeObjectURL(recordedUrl);
   }, [recordedUrl]);
 
-  return { isRecording, recordedBlob, recordedUrl, error, start, stop, clear };
+  return { isRecording, recordedBlob, recordedUrl, error, start, stop, cancel, clear };
 }
