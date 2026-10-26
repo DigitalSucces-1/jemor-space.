@@ -144,6 +144,12 @@ export function PwaRuntime({ userId }: { userId: string | null }) {
     }
   }, [registerPushSubscription, userId]);
 
+  useEffect(() => {
+    const handleInstallRequest = () => { void install(); };
+    window.addEventListener('jemor-install-request', handleInstallRequest);
+    return () => window.removeEventListener('jemor-install-request', handleInstallRequest);
+  }, [install]);
+
   return <div className="pwa-controls" aria-label="Installation et notifications">
     {!installed ? <button type="button" className="pwa-control-button" onClick={() => void install()} title="Installer Jémor Space"><Download size={15}/><span>Installer</span></button> : <span className="pwa-installed" title="Application installée"><Smartphone size={15}/><span>Installée</span></span>}
     {permission === 'default' || permission === 'denied' ? <button type="button" className="pwa-control-button" onClick={() => void enableNotifications()} title="Activer les notifications"><BellRing size={15}/><span>Notifications</span></button> : null}
