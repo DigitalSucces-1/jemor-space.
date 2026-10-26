@@ -18,7 +18,6 @@ export function PwaRuntime({ userId }: { userId: string | null }) {
   const [pushReady, setPushReady] = useState(false);
   const [message, setMessage] = useState('');
   const [showIosHelp, setShowIosHelp] = useState(false);
-  const [showInstallNudge, setShowInstallNudge] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
